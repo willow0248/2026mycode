@@ -1,0 +1,8 @@
+# ——最小可运行依赖——
+streamlit>=1.26
+numpy>=1.23
+matplotlib>=3.6
+
+# ——可选（本项目里有字体和主题美化时才用到）——
+pandas>=2.0
+seaborn>=0.13
