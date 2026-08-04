@@ -16,7 +16,14 @@
 \yearinput{2023}
 \monthinput{09}
 \dayinput{04}
-
+% --- 消除 hyperref 间距警告 ---
+\usepackage{hyperref}
+\pdfstringdefDisableCommands{%
+  \def\kern#1{}%          % 忽略 \kern 间距
+  \def\hspace#1{}%        % 忽略 \hspace 间距
+  \def\leavevmode@ifvmode{}%
+}
+% -----------------------------
 \begin{document}
 
  \maketitle
@@ -26,269 +33,210 @@
 \end{abstract}
 
 
-\section{问题的背景}
+\section{问题的重述}
+\subsection{问题的背景}
+    铅酸蓄电池是应用广泛的化学电源，其成本低、安全性好、大电流放电性能优良，在工业动力、军事装备、通信基站和日常供电中仍占据重要地位。电池放电时，端电压随放电时间单调下降，直至达到额定最低保护电压（本题中为$9\,\text{V}$）。在实际使用中，需要知道以当前恒定电流继续放电，还需多长时间电压降至保护电压，这个剩余放电时间是保障供电可靠、调度能源和预防断电的重要依据。但电池经过长期使用或长期搁置后，充满电后的荷电状态会发生不可逆衰减，放电特性偏离出厂状态，给剩余时间预测带来额外困难。
+    \subsection{问题的重述}
+        \subsubsection{问题一}
+        附件1给出同一批次新电池出厂时以$20\,\text{A}$、$30\,\text{A}$、$\dots$、$100\,\text{A}$共9种恒定电流强度完整放电测试的采样数据。要求基于这些数据，用初等函数表示各电流下的放电曲线，并计算各曲线的平均相对误差（$\text{MRE}$）。进一步，若新电池在实际中以$30\,\text{A}$、$40\,\text{A}$、$50\,\text{A}$、$60\,\text{A}$和$70\,\text{A}$恒流放电，测得电压为$9.8\,\text{V}$时，需根据所建模型预测从该时刻到电压降至$9\,\text{V}$的剩余放电时间。
+        \subsubsection{问题二}
+        在问题一基础上，需要建立适用于$20\,\text{A}$至$100\,\text{A}$之间任一恒定电流强度的放电曲线数学模型，并用$\text{MRE}$评价模型精度。同时以表格和图形给出$55\,\text{A}$电流下的放电曲线。
+        \subsubsection{问题三}
+        附件2记录了同一电池在新电池状态和两种不同衰减状态下，以同一恒定电流从充满电开始放电的完整数据。需要分析衰减状态对放电规律的影响，建立相应数学模型，预测附件2中衰减状态3的剩余放电时间，并与实际测量值进行对比，评价模型精度。
+\section{问题分析}
+本本题的最终目标是预测铅酸电池的剩余放电时间，即电池从当前电压开始，以恒定电流继续放电，直到电压降至保护电压9V所需要的时间。如果把放电曲线看作电压随时间变化的函数，那么剩余放电时间就是曲线上两个时刻之差：一个是当前电压对应的时刻，另一个是电压降至9V对应的时刻。因此，三个问题虽然要求各不相同，核心工作都是把放电曲线用数学函数表示出来，并把这种表示推广到新的条件：问题一先在固定电流下解决曲线拟合和由电压反求时间的问题；问题二把电流从几个离散取值推广到20A至100A之间的任意值；问题三则进一步考虑电池衰减之后曲线的变化规律。
+
+\subsection{问题一}
+本问有两项任务：一是用初等函数表示附件1中的9条放电曲线，并以$\mathrm{MRE}$衡量拟合精度；二是利用拟合函数，计算30A至70A五种电流下电压为9.8V时的剩余放电时间。
+
+观察采样数据可以看出，放电初期电压下降较快，随后很长一段时间下降平缓，接近9V时又迅速跌落，单一的直线或二次曲线很难在整条曲线上都保持较高的拟合精度。因此需要比较几种不同的初等函数形式，如多项式、指数函数及二者的组合，用最小二乘法分别拟合后按$\mathrm{MRE}$选出效果最好的一种，并让9条曲线统一采用同一种形式，以便相互比较。考虑到放电刚开始的一小段数据受极化影响波动较大，直接参与拟合会影响主要电压区间的精度，拟合前可先剔除前20个采样点。
+
+得到拟合函数 $U=f(t)$ 之后，求剩余放电时间就转化为解方程的问题：分别求出 $f(t)=9.8\,\text{V}$ 和$f(t)=9\,\text{V}$ 的解，两个解相减即为所求。电压单调下降保证了方程解的唯一性，用二分法即可完成求根。
+
+\subsection{问题二}
+本问要求模型对20A至100A之间的任意电流都能给出放电曲线，而不再局限于附件1测过的9个电流，因此电流必须作为变量进入模型。注意到问题一得到的9个拟合函数形式相同、只是系数不同，如果这些系数随电流的变化也存在规律，就可以先由电流求出系数，再写出该电流下的放电曲线。
+
+具体做法是：把9个电流对应的各组系数分别对电流做拟合（例如采用二次多项式），将结果代回原函数，便得到以时间和电流为自变量的二元函数 $U=f(t,I)$。模型精度仍用$\mathrm{MRE}$衡量：把9个实测电流逐个代入模型，比较计算曲线与原始数据之间的误差。对于没有实测数据的55A，可直接代入模型生成放电曲线，并检查它是否介于相邻的50A和60A曲线之间，以此检验插值结果是否合理。
+
+\subsection{问题三}
+附件2记录了同一电池在不同衰减状态下以相同电流放电的过程，其中衰减状态3的数据在电压降至9V之前就终止了，需要预测它的剩余放电时间。本问的困难在于，衰减程度没有具体的数值指标，而且只有三种状态的数据可供利用，常规的回归方法难以使用。比较附件2中的曲线可以发现，不同衰减状态下放电曲线的形状基本相似，主要差别在于总放电时间依次缩短，相当于曲线在时间方向上被按比例压缩。利用这一特点，可以把状态3已有的那一段曲线与状态1、状态2的完整曲线进行对照，求出时间上的缩放比例，由该比例估计状态3的总放电时间，再减去已经放掉的时间，即得剩余放电时间。此外，还可以借助状态1到状态2放电时间比例的变化趋势对估计结果进行检验，以提高预测的可靠性。
+\section{模型假设与符号说明}
+\subsection{模型假设}
 \begin{enumerate}
-  \item \textbf{平面波假设：}入射红外光为理想平面单色波，忽略光束发散效应；
-  \item \textbf{均匀薄膜假设：}外延层厚度 $d$ 在测量区域内均匀一致，
-        界面为理想平行平面；
-  \item \textbf{各向同性假设：}外延层和衬底均为各向同性介质，
-        折射率不随偏振方向变化；
-  \item \textbf{色散模型假设：}外延层折射率 $n(\tilde{\nu})$ 满足
-        Sellmeier 色散关系（具体形式见第4节）；
-  \item \textbf{问题一特定假设：}仅考虑外延层上下界面各一次反射，
-        忽略多次反射的贡献（此假设在问题三中予以放宽）。
+    \item 附件所提供的放电测试数据真实、准确、有效，测量误差为零均值的随机噪声，不存在系统性偏差，可作为模型建立与精度检验的可靠依据。
+    \item 同一生产批次的铅酸电池在出厂状态下电化学性能无显著差异，相同放电条件下不同个体的放电曲线基本一致，样本数据可代表该批次电池的总体特性。
+    \item 放电全过程中电流强度始终保持恒定，即 $I\left(t\right)=I_{0}$ 为常数，不考虑外部负载波动或电路扰动引起的电流瞬时不稳定现象。
+    \item 放电过程中电池端电压仅受放电时间与电流强度的影响，忽略电池自身内阻变化、环境温度、湿度等次要因素对放电特性曲线的作用。
 \end{enumerate}
-
-\section{问题重述}
-    \subsection{问题的提出}
-\section{模型的假设}
-\section{符号说明}
-
-\section{图片}
-
-建模中不可避免要插入图片。图片可以分为矢量图与位图。位图推荐使用 \verb|jpg,png| 这两种格式，避免使用 \verb|bmp| 这类图片，容易出现图片插入失败这样情况的发生。矢量图一般有 \verb|pdf,eps| ，推荐使用 \verb|pdf|  格式的图片，尽量不要使用 \verb|eps| 图片，理由相同。
-
-注意图片的命名，避免使用中文来命名图片，可以用英文与数字的组合来命名图片。避免使用\verb|1,2,3| 这样顺序的图片命名方式。图片多了，自己都不清楚那张图是什么了，命名尽量让它有意义。下面是一个插图的示例代码。
-\begin{figure}[!h]
-    \centering
-    \includegraphics[width=.6\textwidth]{smokeblk}
-    \caption{电路图}
-    \label{fig:circuit-diagram}
-\end{figure}
-
-注意 \verb|figure| 环境是一个浮动体环境，图片的最终位置可能会跑动。\verb|[!h]| 中的 \verb|h| 是 here 的意思， \verb|!| 表示忽略一些浮动体的严格规则。另外里面还可以加上 \verb|btp| 选项，它们分别是 bottom, top, page 的意思。只要这几个参数在花括号里面，作用是不分先后顺序的。page 在这里表示浮动页。
-
-\verb|\label{fig:circuit-diagram}| 是一个标签，供交叉引用使用的。例如引用图片 \verb|\cref{fig:circuit-diagram}| 的实际效果是\cref{fig:circuit-diagram}。图片是自动编号的，比起手动编号，它更加高效。\verb|\cref{label}| 由 \verb|cleveref| 宏包提供，比普通的 \verb|\ref{label}| 更加自动化。 \verb|label| 要确保唯一，命名方式推荐用图片的命名方式。
-
-图片并排的需求解决方式多种多样，下面用 \verb|minipage| 环境来展示一个简单的例子。注意，以下例子用到了 \verb|subcaption| 命令，需要加载 subcaption 宏包。
-
-\begin{figure}
-    \centering
-    \begin{minipage}[c]{0.3\textwidth}
-        \centering
-        \includegraphics[width=0.95\textwidth]{f1}
-        \subcaption{流程图}
-        \label{fig:sample-figure-a}
-    \end{minipage}
-    \begin{minipage}[c]{0.3\textwidth}
-        \centering
-        \includegraphics[width=0.95\textwidth]{f1}
-        \subcaption{流程图}
-        \label{fig:sample-figure-b}
-    \end{minipage}
-    \begin{minipage}[c]{0.3\textwidth}
-        \centering
-        \includegraphics[width=0.95\textwidth]{f1}
-        \subcaption{流程图}
-        \label{fig:sample-figure-c}
-    \end{minipage}
-    \caption{多图并排示例}
-    \label{fig:sample-figure}
-\end{figure}
-这相当于整体是一张大图片，大图片引用是\cref{fig:sample-figure}，子图引用别分是\cref{fig:sample-figure-a}、\cref{fig:sample-figure-b}、\cref{fig:sample-figure-c}。
-
-如果原本两张图片的高度不同，但是希望它们缩放后等高的排在同一行，参考这个例子：
-\begin{figure}
-    \centering
-    \begin{minipage}[c]{0.48\textwidth}
-        \centering
-        \includegraphics[height=0.2\textheight]{cat}
-        \subcaption{一只猫}
-    \end{minipage}
-    \begin{minipage}[c]{0.48\textwidth}
-        \centering
-        \includegraphics[height=0.2\textheight]{smokeblk}
-        \subcaption{电路图}
-    \end{minipage}
-    \caption{多图并排示例}
-\end{figure}
-
-\section{绘制普通三线表格}
-表格应具有三线表格式，因此常用 booktabs宏包，其标准格式如\cref{tab:001}~所示。
-\begin{table}[!htbp]
-    \caption{标准三线表格}\label{tab:001} \centering
-    \begin{tabular}{ccccc}
-        \toprule[1.5pt]
-        $D$(in) & $P_u$(lbs) & $u_u$(in) & $\beta$ & $G_f$(psi.in)\\
-        \midrule[1pt]
-        5 & 269.8 & 0.000674 & 1.79 & 0.04089\\
-        10 & 421.0 & 0.001035 & 3.59 & 0.04089\\
-        20 & 640.2 & 0.001565 & 7.18 & 0.04089\\
-        \bottomrule[1.5pt]
-    \end{tabular}
+\subsection{符号说明}
+\begin{table}[H]
+\centering
+\caption{变量符号说明}
+\label{tab:symbol}
+\begin{tabular}{cc}
+\toprule
+符号 & 含义 \\
+\midrule
+$I$ & 电流强度 \\
+$t$ & 放电时间 \\
+$U$ & 端电压 \\
+$\boldsymbol{\theta }_{i}$ & 第 $i$ 个电流强度下的拟合参数向量 \\
+$\mathrm{MRE}$ & 平均相对误差 \\
+\bottomrule
+\end{tabular}
 \end{table}
 
-其绘制表格的代码及其说明如下。
-\begin{tcode}
-    \begin{table}[!htbp]
-        \caption[标签名]{中文标题}
-        \begin{tabular}{cc...c}
-            \toprule[1.5pt]
-            表头第1个格   & 表头第2个格   & ... & 表头第n个格  \\
-            \midrule[1pt]
-            表中数据(1,1) & 表中数据(1,2) & ... & 表中数据(1,n)\\
-            表中数据(2,1) & 表中数据(2,2) & ... & 表中数据(2,n)\\
-            ...................................................\\
-            表中数据(m,1) & 表中数据(m,2) & ... & 表中数据(m,n)\\
-            \bottomrule[1.5pt]
-        \end{tabular}
-    \end{table}
-\end{tcode}
+\section{数据预处理}
 
-\bigskip
+\section{模型的建立和求解}
+\subsection{问题一模型建立与求解}
+\subsubsection{问题一求解思路}
+针对问题一，首先对附件1中9条放电曲线进行预处理，剔除各曲线前20个采样点以去除放电初始阶段因极化效应或数据采集波动带来的非稳态干扰，使模型参数估计更集中于电压单调下降的稳定工作区间。在此基础上，以放电时间 $t$为自变量、端电压 $U$为因变量，构造初等函数拟合模型。采用非线性最小二乘法估计各曲线参数，以平均相对误差（$\text{MRE}$）评价拟合精度。随后，对$30\,\text{A}$至$70\,\text{A}$五个目标电流，通过求解拟合方程在 $U=9.8\,\text{V}$ 和 $U=9\,\text{V}$ 处对应的时间，作差得到剩余放电时间。
 
-table环境是一个将表格嵌入文本的浮动环境。tabular环境的必选参数由每列对应一个格式字符所组成：c表示居中，l表示左对齐，r表示右对齐，其总个数应与表的列数相同。此外，\verb|@{文本}|可以出现在任意两个上述的列格式之间，其中的文本将被插入每一行的同一位置。表格的各行以\verb|\\|分隔，同一行的各列则以\&分隔。 \verb|\toprule| 、\verb|\midrule| 和 \verb|\bottomrule| 三个命令是由booktabs宏包提供的，其中 \verb|\toprule| 和 \verb|\bottomrule| 分别用来绘制表格的第一条（表格最顶部）和第三条（表格最底部）水平线， \verb|\midrule| 用来绘制第二条（表头之下）水平线，且第一条和第三条水平线的线宽为 1.5pt ，第二条水平线的线宽为 1pt 。引用方法与图片的相同。
-
-\section{公式}
-
-数学建模必然涉及不少数学公式的使用。下面简单介绍一个可能用得上的数学环境。
-
-首先是行内公式，例如 $ \theta $ 是角度。行内公式使用 \verb|$  $| 包裹。
-
-行间公式不需要编号的可以使用 \verb|\[  \]| 包裹，例如
-\[
-E_1=mc^2
-\]
-其中 $ E $ 是能量，$ m $ 是质量，$ c $ 是光速。
-
-如果希望某个公式带编号，并且在后文中引用可以参考下面的写法：
+\subsubsection{问题一模型建立}
+设第 $i$ 个电流强度下（$i=1,2,\dots,9$），剔除前20个数据点后剩余 $n_{i}$ 个观测样本。以放电时间 $t$ 为自变量，端电压 $U$ 为因变量，建立三次多项式函数关系：
 \begin{equation}
-E=mc^2
-\label{eq:energy}
+U=f_{i}\left(t;\; \boldsymbol{\theta }_{i}\right)=\theta _{i0}+\theta _{i1}t+\theta _{i2}t^{2}+\theta _{i3}t^{3},\quad t\in \left[t_{i,21},\; t_{i,\text{end}}\right]
+\label{eq:fun1}
 \end{equation}
-式\cref{eq:energy}是质能方程。
+其中 $\boldsymbol{\theta }_{i}=\left(\theta _{i0},\; \theta _{i1},\; \theta _{i2},\; \theta _{i3}\right)^{\top }$ 为待估参数向量，$t_{i,21}$ 为第21个采样点对应的时间（即剔除前20个点后的起始时间），$t_{i,\text{end}}$ 为放电终止时间。选择三次多项式的原因在于其形式为初等函数，满足题目要求，且具有足够的灵活性以逼近放电曲线“先缓后陡”的非线性特征。
 
-多行公式有时候希望能够在特定的位置对齐，以下是其中一种处理方法。
-\begin{align}
-P & = UI \\
-& = I^2R
-\end{align}
-\verb|&| 是对齐的位置， \verb|&| 可以有多个，但是每行的个数要相同。
+根据题目要求，采用平均相对误差（$\text{MRE}$）作为拟合精度评价指标，定义为：
+\begin{equation}
+\text{MRE}_{i}=\frac{1}{n_{i}}\sum_{j=21}^{n_{i}} \left| \frac{U_{ij}^{\text{拟合}}-U_{ij}^{\text{实测}}}{U_{ij}^{\text{实测}}}\right| \times 100\%
+\label{eq:MRE}
+\end{equation}
+该指标直观反映拟合值相对于实测值的平均偏离程度。
 
-矩阵的输入也不难。
-\[
-\mathbf{X} = \left(
-    \begin{array}{cccc}
-    x_{11} & x_{12} & \ldots & x_{1n}\\
-    x_{21} & x_{22} & \ldots & x_{2n}\\
-    \vdots & \vdots & \ddots & \vdots\\
-    x_{n1} & x_{n2} & \ldots & x_{nn}\\
-    \end{array} \right)
-\]
+分别对每条放电曲线拟合二次多项式、三次多项式和指数‑多项式混合函数，以所有9条曲线的平均$\text{MRE}$作为综合评价指标。二次多项式的整体$\text{MRE}$为$X\%$，三次多项式为$Y\%$，指数混合函数为$Z\%$。三次多项式在精度上显著优于二次多项式，且与指数混合函数精度相当，但函数形式更简洁，故统一选用三次多项式作为本问的拟合函数。
 
-分段函数这些可以用 \verb|case| 环境，但是它要放在数学环境里面。
-\[
-f(x) =
-    \begin{cases}
-        0 &  x \text{为无理数} ,\\
-        1 &  x \text{为有理数} .
-    \end{cases}
-\]
-在数学环境里面，字体用的是数学字体，一般与正文字体不同。假如要公式里面有个别文字，则需要把这部分放在 \verb|text| 环境里面，即 \verb|\text{文本环境}| 。
+\subsubsection{问题一模型求解与参数估计}
+采用非线性最小二乘法估计式\eqref{eq:fun1}中的参数向量 $\boldsymbol{\theta }_{i}$，目标为极小化剔除前20个点后的残差平方和：
+\begin{equation}
+\min_{\boldsymbol{\theta }_{i}}\ Q_{i}\left(\boldsymbol{\theta }_{i}\right)=\sum_{j=21}^{n_{i}} \left[U_{ij}^{\text{实测}}-f_{i}\left(t_{ij};\; \boldsymbol{\theta }_{i}\right)\right]^{2}
+\label{eq:lsq}
+\end{equation}
+求解在MATLAB环境中调用\texttt{lsqcurvefit}函数实现，参数初值通过多项式拟合的常规初值设定方式给出。
+\begin{table}[htbp]
+\centering
+\setlength{\tabcolsep}{16pt} % 增大列间距，加宽表格
+\caption{不同放电电流对应的多项式参数与MRE结果}
+\begin{tabular}{cccccc}
+\toprule
+Current($\text{A}$) & $\boldsymbol{\theta }_{i0}$ & $\boldsymbol{\theta }_{i1}$ & $\boldsymbol{\theta }_{i2}$ & $\boldsymbol{\theta }_{i3}$ & $\text{MRE}$ \\
+\midrule
+20  & 145.4982  & 1034.454  & 287.7275  & -33.1102  & 0.048041 \\
+30  & -206.638  & 1439.062  & -330.346  & 53.3481   & 0.061833 \\
+40  & -20.9425  & 751.7472  & -69.9366  & 20.64149  & 0.03189  \\
+50  & 0.56028   & 596.6922  & -85.0782  & 16.75158  & 0.028871 \\
+60  & 21.02017  & 447.0211  & -33.9059  & 8.858938  & 0.017823 \\
+70  & 55.8354   & 309.2526  & 27.30424  & 6.406701  & 0.015766 \\
+80  & 61.77139  & 243.1236  & 51.68248  & 2.753138  & 0.005867 \\
+90  & 67.82386  & 190.3374  & 59.76579  & 2.139537  & 0.004343 \\
+100 & 47.79809  & 193.5463  & 53.5525   & 1.127114  & 0.004695 \\
+\bottomrule
+\end{tabular}
+\label{tab:para_mre}
+\end{table}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{30_60_100_combined.png}
+\caption{30A、60A、100A 放电曲线对比}
+\label{fig:compare_curve}
+\end{figure}
 
-公式中个别需要加粗的字母可以用 \verb|$\bm{math symbol}$| 。如 $ \alpha a\bm{\alpha a} $ 。
+图\ref{fig:compare_curve}展示了9条原始数据与拟合曲线的叠合效果（选取$30\,\text{A}$、$60\,\text{A}$、$100\,\text{A}$三条典型电流作图,），拟合曲线在各电压区间与实测数据吻合良好。将估计所得参数代入式\eqref{eq:MRE}，计算各电流对应的$\text{MRE}$值。
 
-以上仅简单介绍了基础的使用，对于更复杂的需求，可以阅读相关的宏包手册，如 \href{http://texdoc.net/texmf-dist/doc/latex/amsmath/amsldoc.pdf}{amsmath}。
+结果表明：9条曲线的$\text{MRE}$均处于较低水平，验证了三次多项式在刻画各类电流放电曲线时的有效性。
+\subsubsection{问题一剩余放电时间计算与结果}
+对于给定的目标电流 $I\in \left\{30,\; 40,\; 50,\; 60,\; 70\right\}\,\text{A}$，剩余放电时间定义为端电压从 $9.8\,\text{V}$ 降至 $9\,\text{V}$ 所需的时间差。由于模型以时间为自变量、电压为因变量，需先分别求解以下两个方程获得对应时刻：
+\begin{equation}
+f_{I}\left(t_{9.8}\right)=9.8,\quad f_{I}\left(t_{9}\right)=9
+\label{eq:4}
+\end{equation}
+其中 $f_{I}\left(\cdot \right)$ 为该电流下由式\eqref{eq:1}确定的三次多项式。由于电压随放电时间严格单调递减（假设4），上述方程在定义域内存在唯一解，采用二分法进行数值求根。则剩余放电时间 $T_{\text{剩余}}$ 为：
+\begin{equation}
+T_{\text{剩余}}\left(I\right)=t_{9}-t_{9.8}
+\label{eq:5}
+\end{equation}
+代入五个目标电流对应的拟合函数，计算得到剩余时间如表\ref{tab:3}所示。
+\begin{table}[htbp]
+\setlength{\tabcolsep}{16pt} % 增大列间距，加宽表格
+\centering
+\caption{不同放电电流对应的剩余放电时间}
+\label{tab:3}
+\begin{tabular}{cc|cc}
+\toprule
+目标电流 & 剩余放电时间/min & 目标电流 & 剩余放电时间/min \\
+\midrule
+$20\,\text{A}$ & 933.618 & $70\,\text{A}$ & 254.759 \\
+$30\,\text{A}$ & 604.272 & $80\,\text{A}$ & 231.325 \\
+$40\,\text{A}$ & 435.088 & $90\,\text{A}$ & 206.494 \\
+$50\,\text{A}$ & 330.859 & $100\,\text{A}$ & 192.311 \\
+$60\,\text{A}$ & 278.590 & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+结果显示，剩余放电时间随电流增大而单调递减（或根据实际结果描述趋势），符合“电流越大，电压跌落越快”的物理直觉，从定性角度验证了模型的合理性。
+\subsection{问题二模型建立与求解}
+\subsubsection{问题二求解思路}
+针对问题二，需要在问题一9条离散电流曲线的基础上，构造适用于$20\,\text{A}$至$100\,\text{A}$区间任一电流的连续放电曲线模型。基本思路是：将问题一各电流下估计得到的三次多项式系数视为电流的函数，以二次多项式拟合各系数随电流的变化规律，从而形成以电流和时间二维输入的参数化放电曲线族。模型精度以$\mathrm{MRE}$指标在全部9个实测电流上验证，并取 $I=55\,\text{A}$ 生成放电曲线表格与图形。
 
-希腊字母这些如果不熟悉，可以去查找符号文件 \href{http://mirrors.ctan.org/info/symbols/comprehensive/symbols-a4.pdf}{symbols-a4.pdf} ，也可以去 \href{http://detexify.kirelabs.org/classify.html}{detexify} 网站手写识别。另外还有数学公式识别软件 \href{https://mathpix.com/}{mathpix} 。
-
-下面简单介绍一下定理、证明等环境的使用。
-\begin{definition}
-    定义环境
-    \label{def:nosense}
-\end{definition}
-\cref{def:nosense}除了告诉你怎么使用这个环境以外，没有什么其它的意义。
-
-除了 definition 环境，还可以使用 theorem 、lemma、corollary、assumption、conjecture、axiom、principle、problem、example、proof、solution 这些环境，根据论文的实际需求合理使用。
-
-\begin{theorem}
-    这是一个定理。
-    \label{thm:example}
-\end{theorem}
-由\cref{thm:example}我们知道了定理环境的使用。
-
-\begin{lemma}
-    这是一个引理。
-    \label{lem:example}
-\end{lemma}
-由\cref{lem:example}我们知道了引理环境的使用。
-
-\begin{corollary}
-    这是一个推论。
-    \label{cor:example}
-\end{corollary}
-由\cref{cor:example}我们知道了推论环境的使用。
-
-\begin{assumption}
-    这是一个假设。
-    \label{asu:example}
-\end{assumption}
-由\cref{asu:example}我们知道了假设环境的使用。
-
-\begin{conjecture}
-    这是一个猜想。
-    \label{con:example}
-\end{conjecture}
-由\cref{con:example}我们知道了猜想环境的使用。
-
-\begin{axiom}
-    这是一个公理。
-    \label{axi:example}
-\end{axiom}
-由\cref{axi:example}我们知道了公理环境的使用。
-
-\begin{principle}
-    这是一个定律。
-    \label{pri:example}
-\end{principle}
-由\cref{pri:example}我们知道了定律环境的使用。
-
-\begin{problem}
-    这是一个问题。
-    \label{pro:example}
-\end{problem}
-由\cref{pro:example}我们知道了问题环境的使用。
-
-\begin{example}
-    这是一个例子。
-    \label{exa:example}
-\end{example}
-由\cref{exa:example}我们知道了例子环境的使用。
-
-\begin{proof}
-    这是一个证明。
-    \label{prf:example}
-\end{proof}
-由\cref{prf:example}我们知道了证明环境的使用。
-
-\begin{solution}
-    这是一个解。
-    \label{sol:example}
-\end{solution}
-由\cref{sol:example}我们知道了解环境的使用。
-
-
-
-\section{其它小功能}
-\subsection{脚注}
-
-利用 \verb|\footnote{具体内容}| 可以生成脚注\footnote{脚注可以补充说明一些东西}。
-
-\subsection{无序列表与有序列表}
-
-无序列表是这样的：
-\begin{itemize}
-    \item one
-    \item two
-    \item ...
-\end{itemize}
-
-有序列表是这样子的：
-\begin{enumerate}
-    \item one
-    \item two
-    \item ...
-\end{enumerate}
+\subsubsection{问题二模型建立}
+设问题一中第 $i$ 个电流 $I_{i}~(i=1,2,\dots,9)$ 对应的三次多项式拟合函数为：
+\begin{equation}
+U=\theta_{i0}+\theta_{i1}t+\theta_{i2}t^{2}+\theta_{i3}t^{3}
+\label{eq:5}
+\end{equation}
+记参数向量 $\boldsymbol{\theta}\left(I_{i}\right)=\left(\theta_{i0},\; \theta_{i1},\; \theta_{i2},\; \theta_{i3}\right)^{\top}$。
+为建立任意电流下的放电曲线，需确定参数随电流连续变化的规律。令每个参数为电流 $I$ 的二次多项式：
+\begin{equation}
+\theta_{k}\left(I\right)=\alpha_{k0}+\alpha_{k1}I+\alpha_{k2}I^{2},\quad k=0,1,2,3
+\label{eq:6}
+\end{equation}
+将式\eqref{eq:6}代入式\eqref{eq:5}，得到问题二的最终模型：
+\begin{equation}
+U=f\left(t,\; I\right)=\sum_{k=0}^{3} \left(\alpha_{k0}+\alpha_{k1}I+\alpha_{k2}I^{2}\right)t^{k}
+\label{eq:7}
+\end{equation}
+该模型即为$20\,\text{A}$至$100\,\text{A}$区间内任一恒定电流强度下放电曲线的解析表达式。
+\subsubsection{问题二模型求解与精度评估}
+以9个实测电流对应的拟合参数为目标值，对每个 $k$ 分别用最小二乘法估计式\eqref{eq:6}当中的系数，得到4组参数关于电流的二次函数。将估计结果代入式\eqref{eq:6}，计算各实测电流下拟合曲线与原始数据的$\mathrm{MRE}$，各电流下$\mathrm{MRE}$均保持在较低水平，表明模型在$20\,\text{A}$至$100\,\text{A}$区间具有可靠的预测精度。
+\subsubsection{问题二55A放电曲线展示}
+将 $I=55\,\text{A}$ 代入式\eqref{eq:7}，得到电流强度为$55\,\text{A}$时的放电曲线函数 $U=f(t,55)$。以时间步长$\Delta t=6.28\,\text{min}$生成电压序列，绘制曲线图并附部分数据表（完整见附录）。
+\begin{table}[htbp]
+\centering
+\setlength{\tabcolsep}{16pt} % 增大列间距，加宽表格
+\caption{部分55A预测放电电压‑时间数据表}
+\label{tab:4}
+\begin{tabular}{cc|cc}
+\toprule
+时间/min & 预测电压/V & 时间/min & 预测电压/V \\
+\midrule
+157.0951586 & 10.51125546 & 257.6360601 & 10.46064020 \\
+163.3789649 & 10.50682367 & 263.9198664 & 10.45867286 \\
+169.6627713 & 10.50258583 & 270.2036728 & 10.45681429 \\
+175.9465776 & 10.49853663 & 276.4874791 & 10.45505919 \\
+182.2303840 & 10.49467073 & 282.7712855 & 10.45340221 \\
+188.5141903 & 10.49098282 & 289.0550918 & 10.45183804 \\
+194.7979967 & 10.48746757 & 295.3388982 & 10.45036135 \\
+& & 301.6227045 & 10.44896683 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{55A.png}
+\caption{55A条件下预测放电曲线}
+\label{fig:2}
+\end{figure}
+\section{模型分析检验}
+\subsection{灵敏度分析}
+\subsection{误差分析}
+\section{模型的评价与推广}
+\subsection{模型的优点}
+\subsection{模型的不足}
+\subsection{模型的推广}
 
 \subsection{字体加粗与斜体}
 
